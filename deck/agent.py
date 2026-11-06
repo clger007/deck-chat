@@ -2,8 +2,8 @@
 """Deck Chat agent, runs on the Steam Deck (user deck, systemd --user unit deck-chat-agent.service).
 
 Asks the Deck Chat server (DECK_CHAT_SERVER, set in ~/.config/deck-chat.env) for the next chat message (long poll), types it into World of Warcraft with a
-virtual keyboard (/dev/uinput, which user deck may write), and reports back. For each chat line: Enter (opens the
-chat box), the line, Enter (sends it). A line a US keyboard can't type (Chinese) is put on WoW's X clipboard and
+virtual keyboard (/dev/uinput, which user deck may write), and reports back. For each chat line: "/" then
+Backspace (opens the chat box whether it was closed or already open), the line, Enter (sends it). A line a US keyboard can't type (Chinese) is put on WoW's X clipboard and
 pasted with Ctrl+V instead. It types only while WoW is the window gamescope has in front, so a message never lands
 in Steam's menus.
 
@@ -163,8 +163,13 @@ def type_lines(ui, lines):
         display = wow_in_front()
         if not display:
             raise RuntimeError("WoW is not the window in front" + (f" (sent {n} of {len(lines)} lines)" if n else ""))
-        tap(ui, e.KEY_ENTER)
-        time.sleep(0.15)
+        # Enter toggles the chat box, and some add-ons keep it open after a send, so Enter could close it and
+        # turn the text into game key presses. "/" opens a closed box with "/" in it and types "/" into an open
+        # one: either way the box is open, and Backspace leaves it empty, on the channel it was on.
+        tap(ui, *KEYS["/"])
+        time.sleep(0.4)
+        tap(ui, e.KEY_BACKSPACE)
+        time.sleep(0.1)
         if all(c in KEYS for c in line):
             for c in line:
                 tap(ui, *KEYS[c])
@@ -183,7 +188,8 @@ def call(path, body=None, timeout=35):
 
 
 def main():
-    keys = sorted({k for k, _ in KEYS.values()} | {e.KEY_ENTER, e.KEY_LEFTSHIFT, e.KEY_LEFTCTRL, e.KEY_ESC})
+    keys = sorted({k for k, _ in KEYS.values()} | {e.KEY_ENTER, e.KEY_LEFTSHIFT, e.KEY_LEFTCTRL, e.KEY_ESC,
+                                                 e.KEY_BACKSPACE})
     with UInput({e.EV_KEY: keys}, name="Deck Chat keyboard") as ui:
         while True:
             try:
