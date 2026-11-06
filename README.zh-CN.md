@@ -55,6 +55,7 @@ WoW 聊天框的样子，每个频道用游戏里的颜色。
 - `fetch_assets.py`：从 wago.tools 提供的游戏文件下载 WoW 的字体和界面贴图，做成页面用的样子。
 - `assets/background.jpg`：黑暗之门的截图；换成什么图都行。
 - `systemd/deck-chat.service`、`deck/deck-chat-agent.service`：两个服务。
+- `docs/DESIGN.md`：下一步「手机助手」的设计（技能按钮、实时地图、背包、双向聊天）。
 
 ## Status
 

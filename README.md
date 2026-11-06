@@ -60,6 +60,7 @@ Two parts: a small web server on a machine that is always on, and an agent on th
   turns them into what the page uses.
 - `assets/background.jpg`: a screenshot of the Dark Portal; replace it with any image.
 - `systemd/deck-chat.service`, `deck/deck-chat-agent.service`: the two services.
+- `docs/DESIGN.md`: the design for the next part, a phone helper (spell buttons, live map, bags, chat both ways).
 
 ## Status
 
