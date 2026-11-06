@@ -56,7 +56,8 @@ WoW 聊天框的样子，每个频道用游戏里的颜色。
 - `assets/background.jpg`：黑暗之门的截图；换成什么图都行。
 - `systemd/deck-chat.service`、`deck/deck-chat-agent.service`：两个服务。
 - `addon/QuietChat/`：WoW 插件：聊天窗口平时隐藏，打开聊天才显示；悄悄话、队伍、团队、公会和副本消息在一个小框里显示
-  15 秒后淡出（`/quietchat` 开关）。
+  15 秒后淡出（`/quietchat` 开关）。`/qc`（或它的按键绑定）打开聊天窗口：最近 400 行，可筛选全部、悄悄话、队伍、公会、
+  综合、交易、说；手柄十字键左右换筛选、上下滚动，B 关闭。
 - `docs/DESIGN.md`：下一步「手机助手」的设计（技能按钮、实时地图、背包、双向聊天）。
 
 ## Status

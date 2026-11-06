@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="QUIETCHAT_TOGGLE" header="QUIETCHAT" category="ADDONS">
+    QuietChat_Toggle()
+  </Binding>
+</Bindings>
