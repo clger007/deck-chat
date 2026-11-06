@@ -1,13 +1,14 @@
 -- Quiet Chat's bars: the game's player and target frames are hidden; thin bars take their place.
---   * You: health and power (mana, rage, energy) just above the action bar: faint out of combat, solid in combat.
---   * Your enemy: a health bar with its name at the top of the screen, shown while you fight it.
+--   * You: health and power (mana, rage, energy) just above the experience bar: faint out of combat, solid in combat.
+--   * Your enemy: a health bar with its name at the top of the screen, shown while it is your target.
 --   /quietchat bars    turn the bars off (the game's frames come back) or on again
 
 -- The game's frames this replaces. They are protected: an add-on may not change them in combat, so they are
 -- hidden with a state driver (the game itself then keeps them hidden, fights included), set out of combat only.
 local HIDE = { "PlayerFrame", "TargetFrame", "TargetFrameToT" }
 local UNIT_WATCHED = { TargetFrame = true, TargetFrameToT = true }   -- shown by the game while their unit exists
-local WIDTH, HEIGHT, GAP = 0.17, 5, 3    -- player bars: share of the screen's width, pixels tall, pixels apart
+local WIDTH, HEIGHT, GAP = 0.12, 5, 3    -- player bars: share of the screen's width, pixels tall, pixels apart
+local ABOVE_XP = 0.028                   -- player bars' bottom edge: share of the screen's height (just above the XP bar)
 local ENEMY_WIDTH, ENEMY_HEIGHT = 0.30, 8
 
 local function settings()
@@ -29,7 +30,7 @@ local function makeBar(parent, height)
     return bar
 end
 
--- You: above the action bar, at the bottom centre
+-- You: just above the experience bar, at the bottom centre
 local mine = CreateFrame("Frame", "QuietChatPlayerBars", UIParent)
 mine:SetFrameStrata("LOW")
 mine:SetAlpha(0)
@@ -51,7 +52,7 @@ foeLevel:SetPoint("LEFT", foeName, "RIGHT", 6, 0)
 local function layout()
     local w, h = UIParent:GetWidth(), UIParent:GetHeight()
     mine:ClearAllPoints()
-    mine:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, h * 0.30)
+    mine:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, h * ABOVE_XP)
     mine:SetSize(w * WIDTH, HEIGHT * 2 + GAP)
     health:ClearAllPoints()
     health:SetPoint("TOPLEFT", mine, "TOPLEFT")
@@ -119,9 +120,9 @@ local function update()
     fill(power, UnitPower("player", powerType), UnitPowerMax("player", powerType))
     fade(mine, fighting and 1 or 0.45)
 
-    -- Your enemy: only something you can attack, while you or it are fighting
+    -- Your enemy: anything you can attack, as soon as it is your target
     local enemy = UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDead("target")
-    if enemy and (fighting or UnitAffectingCombat("target")) then
+    if enemy then
         fill(foeBar, UnitHealth("target"), UnitHealthMax("target"))
         -- Name and level go straight to the text (they may be secret values too: no joining or comparing)
         foeName:SetText(UnitName("target"))
