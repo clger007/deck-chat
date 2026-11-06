@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>WoW Chat</title>
+<link rel="icon" href="/assets/icon-64.png">
+<link rel="apple-touch-icon" href="/assets/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="WoW Chat">
+<style>
+  /* The art is WoW's own interface textures and font (assets/, from the game files). */
+  @font-face { font-family: "Friz"; src: url(/assets/frizqt.ttf) format("truetype"); }
+  :root {
+    --gold: #ffd100; --white: #ffffff; --grey: #9d9d9d;
+    --say: #ffffff; --party: #aaaaff; --guild: #40ff40; --instance: #ff7f00; --whisper: #ff80ff; --current: #ffd100;
+    --font: "Friz", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { background: #000; }
+  body { margin: 0; min-height: 100vh; font: 16px/1.35 var(--font); color: var(--white);
+         text-shadow: 1px 1px 0 #000; padding: max(10px, env(safe-area-inset-top)) 12px 40px; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1;
+                 background: linear-gradient(rgba(0,0,0,.2), rgba(0,0,0,.55)), url(/assets/background.jpg) 56% center / cover; }
+  main { max-width: 560px; margin: 0 auto; }
+
+  header { text-align: center; margin: 4px 0 10px; }
+  .title { display: inline-flex; align-items: center; gap: 6px; }
+  .title img { width: 54px; height: 54px; filter: drop-shadow(0 0 6px rgba(80,255,60,.55)); }
+  .plate { display: inline-block; width: 230px; height: 65px; padding-top: 18px;
+           background: url(/assets/header.png) center / 100% 100% no-repeat;
+           color: var(--gold); font-size: 19px; letter-spacing: .5px; }
+  #deck { font-size: 13px; color: var(--grey); margin-top: 2px; }
+  #deck.on { color: var(--guild); }
+  #deck.off { color: #ff2020; }
+
+  .panel { border: 20px solid transparent; border-image: url(/assets/frame-gold.png) 32 / 20px;
+           background: rgba(0,0,0,.62); background-clip: padding-box;
+           padding: 6px 4px 8px; }
+
+  .label { font-size: 15px; margin: 0 0 4px 2px; }
+  textarea { display: block; width: 100%; min-height: 104px; resize: vertical; font: 17px/1.35 var(--font);
+             color: inherit; text-shadow: 1px 1px 0 #000; padding: 8px 10px; outline: none;
+             border: 10px solid transparent; border-image: url(/assets/frame-stone.png) 32 / 10px;
+             background: rgba(0,0,0,.75); background-clip: padding-box; caret-color: var(--gold); }
+  textarea::placeholder { color: #8a8a8a; }
+
+  .channels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0 8px; }
+  .channels label { position: relative; text-align: center; font-size: 14px; padding: 7px 2px 6px;
+                    border: 6px solid transparent; border-image: url(/assets/button-up.png) 6 8 fill / 6px 8px;
+                    opacity: .8; }
+  .channels input { position: absolute; opacity: 0; pointer-events: none; }
+  .channels label:has(input:checked) { border-image-source: url(/assets/button-down.png); opacity: 1;
+                                       box-shadow: 0 0 0 1px rgba(255,209,0,.7), 0 0 8px rgba(255,209,0,.35); }
+  .c-current { color: var(--current); } .c-say { color: var(--say); } .c-party { color: var(--party); }
+  .c-guild { color: var(--guild); } .c-instance { color: var(--instance); } .c-whisper { color: var(--whisper); }
+
+  #target { display: block; width: 100%; font: 16px var(--font); color: var(--whisper); text-shadow: 1px 1px 0 #000;
+            padding: 6px 10px; margin-bottom: 8px; outline: none;
+            border: 8px solid transparent; border-image: url(/assets/frame-stone.png) 32 / 8px;
+            background: rgba(0,0,0,.75); background-clip: padding-box; }
+  #target[hidden] { display: none; }
+
+  #send { display: block; width: 100%; font: 18px var(--font); color: var(--gold); text-shadow: 1px 1px 0 #000;
+          padding: 9px 0 8px; border: 7px solid transparent; background: none; cursor: pointer;
+          border-image: url(/assets/button-up.png) 6 8 fill / 7px 10px; }
+  #send:active { border-image-source: url(/assets/button-down.png); padding-top: 10px; padding-bottom: 7px; }
+  #send:disabled { filter: grayscale(1) brightness(.7); }
+
+  #err { color: #ff2020; text-align: center; min-height: 1.4em; margin: 8px 0 2px; font-size: 15px; }
+
+  .log { margin-top: 10px; background: rgba(0,0,0,.55); padding: 8px 10px; min-height: 48px; }
+  .log p { margin: 0 0 6px; font-size: 15px; word-wrap: break-word; }
+  .log small { display: block; font-size: 12px; color: var(--grey); }
+  .log small.failed { color: #ff2020; }
+  .log .empty { color: var(--grey); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="title"><img src="/assets/icon.png" alt=""><div class="plate">WoW Chat</div></div>
+  <div id="deck">…</div>
+</header>
+
+<div class="panel">
+  <div class="label c-current" id="label">Current channel:</div>
+  <textarea id="text" class="c-current" placeholder="Tap here, then the mic on the keyboard" enterkeyhint="send" autocapitalize="sentences"></textarea>
+
+  <div class="channels" id="channels">
+    <label class="c-current"><input type="radio" name="ch" value="current" checked>Current</label>
+    <label class="c-say"><input type="radio" name="ch" value="say">Say</label>
+    <label class="c-party"><input type="radio" name="ch" value="party">Party</label>
+    <label class="c-guild"><input type="radio" name="ch" value="guild">Guild</label>
+    <label class="c-instance"><input type="radio" name="ch" value="instance">Instance</label>
+    <label class="c-whisper"><input type="radio" name="ch" value="whisper">Whisper</label>
+  </div>
+  <input id="target" placeholder="Whisper to: character name" autocapitalize="words" autocomplete="off" hidden>
+
+  <button id="send">Send</button>
+  <div id="err"></div>
+</div>
+
+<div class="log" id="list"></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const NAMES = {current: "Current channel", say: "Say", party: "Party", guild: "Guild", instance: "Instance", whisper: "Whisper"};
+const STATUS = {queued: "waiting for the Deck", typing: "typing…", sent: "sent", failed: "failed"};
+
+function channel() { return document.querySelector("input[name=ch]:checked").value; }
+function showChannel() {
+  const c = channel();
+  $("label").textContent = NAMES[c] + ":";
+  $("label").className = "label c-" + c;
+  $("text").className = "c-" + c;
+  $("target").hidden = c !== "whisper";
+}
+document.querySelectorAll("input[name=ch]").forEach(r => r.addEventListener("change", showChannel));
+showChannel();
+
+async function send() {
+  const text = $("text").value.trim();
+  if (!text) return;
+  $("send").disabled = true; $("err").textContent = "";
+  try {
+    const r = await fetch("/api/send", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text, channel: channel(), target: $("target").value})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    $("text").value = "";
+  } catch (e) { $("err").textContent = e.message; }
+  $("send").disabled = false;
+  $("text").focus();
+  refresh();
+}
+$("send").addEventListener("click", send);
+$("text").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
+});
+
+function line(m) {
+  const p = document.createElement("p");
+  const kind = m.channel.split(" ")[0];
+  p.className = "c-" + kind;
+  const tag = kind === "current" ? "" : kind === "whisper" ? `[To ${m.channel.slice(8)}] ` : `[${NAMES[kind]}] `;
+  p.textContent = tag + m.text;
+  const s = document.createElement("small");
+  s.className = m.status;
+  s.textContent = new Date(m.at * 1000).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"}) + " · "
+    + STATUS[m.status] + (m.error ? ": " + m.error : "");
+  p.append(s);
+  return p;
+}
+
+async function refresh() {
+  try {
+    const j = await (await fetch("/api/state")).json();
+    $("deck").textContent = j.deck ? "Steam Deck connected" : "Steam Deck not connected";
+    $("deck").className = j.deck ? "on" : "off";
+    if (j.messages.length) $("list").replaceChildren(...j.messages.map(line));
+    else $("list").innerHTML = '<div class="empty">Sent messages show here.</div>';
+  } catch (e) { $("deck").textContent = "Server not reachable"; $("deck").className = "off"; }
+}
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

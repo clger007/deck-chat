@@ -1,0 +1,4 @@
+__pycache__/
+# Blizzard's art and font: made by fetch_assets.py, not redistributed here
+assets/*
+!assets/background.jpg
