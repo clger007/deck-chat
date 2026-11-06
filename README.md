@@ -60,6 +60,8 @@ Two parts: a small web server on a machine that is always on, and an agent on th
   turns them into what the page uses.
 - `assets/background.jpg`: a screenshot of the Dark Portal; replace it with any image.
 - `systemd/deck-chat.service`, `deck/deck-chat-agent.service`: the two services.
+- `addon/QuietChat/`: a WoW add-on that hides the chat window unless you open it; whispers, party, raid, guild and
+  instance messages pop up in a small box for 15 seconds, then fade (`/quietchat` turns it off and on).
 - `docs/DESIGN.md`: the design for the next part, a phone helper (spell buttons, live map, bags, chat both ways).
 
 ## Status

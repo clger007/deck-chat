@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: Quiet Chat
+## Notes: Chat like a messenger: the chat window stays hidden unless you open it; messages to you (whispers, party, raid, guild, instance) pop up for a few seconds, then fade.
+## Author: deck-chat
+## Version: 1.0.0
+## SavedVariables: QuietChatDB
+
+QuietChat.lua
