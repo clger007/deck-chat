@@ -7,6 +7,7 @@
 --   /qc                open or close the chat window (also a key binding: Key Bindings > Quiet Chat)
 --   /quietchat         turn the hidden chat on or off
 --   /quietchat test    a test line in the pop-up box
+--   /quietchat bars    thin health / power / enemy bars instead of the player and target frames (Bars.lua)
 
 local DEFAULTS = { enabled = true, seconds = 15 }
 local KEEP = 400            -- lines of history kept
@@ -277,6 +278,9 @@ SlashCmdList.QUIETCHAT = function(msg)
         return
     elseif msg == "window" then
         QuietChat_Toggle()
+        return
+    elseif msg == "bars" then
+        QuietChat_ToggleBars()
         return
     end
     db.enabled = not db.enabled

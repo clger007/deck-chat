@@ -63,7 +63,9 @@ Two parts: a small web server on a machine that is always on, and an agent on th
 - `addon/QuietChat/`: a WoW add-on that hides the chat window unless you open it; whispers, party, raid, guild and
   instance messages pop up in a small box for 15 seconds, then fade (`/quietchat` turns it off and on). `/qc` (or
   its key binding) opens a chat window with the last 400 lines and filters: All, Whispers, Party, Guild, General,
-  Trade, Say; on a controller D-pad left/right picks the filter, up/down scrolls, B closes.
+  Trade, Say; on a controller D-pad left/right picks the filter, up/down scrolls, B closes. `Bars.lua` hides the
+  game's player and target frames: thin health and power bars sit above the action bar (in combat or when not full),
+  and an enemy you fight gets a thin bar with its name at the top of the screen (`/quietchat bars` switches back).
 - `docs/DESIGN.md`: the design for the next part, a phone helper (spell buttons, live map, bags, chat both ways).
 
 ## Status
