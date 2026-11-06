@@ -1,5 +1,5 @@
 -- Quiet Chat's bars: the game's player and target frames are hidden; thin bars take their place.
---   * You: health and power (mana, rage, energy) just above the action bar, shown in combat or when not full.
+--   * You: health and power (mana, rage, energy) just above the action bar: faint out of combat, solid in combat.
 --   * Your enemy: a health bar with its name at the top of the screen, shown while you fight it.
 --   /quietchat bars    turn the bars off (the game's frames come back) or on again
 
@@ -44,7 +44,9 @@ foe:SetAlpha(0)
 local foeBar = makeBar(foe, ENEMY_HEIGHT)
 foeBar:SetStatusBarColor(0.8, 0.1, 0.1)
 local foeName = foe:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-foeName:SetPoint("BOTTOM", foeBar, "TOP", 0, 4)
+foeName:SetPoint("BOTTOM", foeBar, "TOP", -10, 4)
+local foeLevel = foe:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+foeLevel:SetPoint("LEFT", foeName, "RIGHT", 6, 0)
 
 local function layout()
     local w, h = UIParent:GetWidth(), UIParent:GetHeight()
@@ -65,9 +67,11 @@ local function layout()
     foeBar:SetPoint("BOTTOMRIGHT", foe, "BOTTOMRIGHT")
 end
 
-local function ratio(value, max)
-    if not max or max <= 0 then return 0 end
-    return value / max
+-- WoW Forever gives add-ons health and power as "secret values": they may be handed to a bar to draw, but
+-- not calculated with or compared. So the bars get the raw values, and nothing here does arithmetic on them.
+local function fill(bar, value, max)
+    bar:SetMinMaxValues(0, max)
+    bar:SetValue(value)
 end
 
 -- Fade toward a target alpha a little each tick
@@ -107,24 +111,21 @@ local function update()
     end
     local fighting = UnitAffectingCombat("player")
 
-    -- You
-    local hp = ratio(UnitHealth("player"), UnitHealthMax("player"))
+    -- You: always there, faint out of combat (whether health is full can't be known: see fill)
     local powerType, token = UnitPowerType("player")
-    local pw = ratio(UnitPower("player", powerType), UnitPowerMax("player", powerType))
-    health:SetValue(hp)
-    power:SetValue(pw)
     local c = PowerBarColor and (PowerBarColor[token] or PowerBarColor[powerType])
     if c then power:SetStatusBarColor(c.r, c.g, c.b) end
-    -- Rage starts empty: it only matters in a fight. Mana and energy matter when not full.
-    local powerShort = token ~= "RAGE" and pw < 0.999
-    fade(mine, (fighting or hp < 0.999 or powerShort) and 1 or 0)
+    fill(health, UnitHealth("player"), UnitHealthMax("player"))
+    fill(power, UnitPower("player", powerType), UnitPowerMax("player", powerType))
+    fade(mine, fighting and 1 or 0.45)
 
     -- Your enemy: only something you can attack, while you or it are fighting
     local enemy = UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDead("target")
     if enemy and (fighting or UnitAffectingCombat("target")) then
-        foeBar:SetValue(ratio(UnitHealth("target"), UnitHealthMax("target")))
-        local level = UnitLevel("target")
-        foeName:SetText(format("%s  |cffaaaaaa%s|r", UnitName("target") or "", (level and level > 0) and level or "??"))
+        fill(foeBar, UnitHealth("target"), UnitHealthMax("target"))
+        -- Name and level go straight to the text (they may be secret values too: no joining or comparing)
+        foeName:SetText(UnitName("target"))
+        foeLevel:SetText(UnitLevel("target"))
         if UnitIsPlayer("target") or UnitReaction("player", "target") and UnitReaction("player", "target") <= 3 then
             foeBar:SetStatusBarColor(0.8, 0.1, 0.1)
         else
