@@ -7,7 +7,7 @@
 -- hidden with a state driver (the game itself then keeps them hidden, fights included), set out of combat only.
 local HIDE = { "PlayerFrame", "TargetFrame", "TargetFrameToT" }
 local UNIT_WATCHED = { TargetFrame = true, TargetFrameToT = true }   -- shown by the game while their unit exists
-local WIDTH, HEIGHT, GAP = 0.12, 5, 3    -- player bars: share of the screen's width, pixels tall, pixels apart
+local WIDTH, HEIGHT, GAP = 0.085, 5, 3   -- player bars: share of the screen's width, pixels tall, pixels apart
 local ABOVE_XP = 0.028                   -- player bars' bottom edge: share of the screen's height (just above the XP bar)
 local ENEMY_WIDTH, ENEMY_HEIGHT = 0.30, 8
 
