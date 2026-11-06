@@ -66,6 +66,7 @@ Two parts: a small web server on a machine that is always on, and an agent on th
   Trade, Say; on a controller D-pad left/right picks the filter, up/down scrolls, B closes. `Bars.lua` hides the
   game's player and target frames: thin health and power bars sit just above the experience bar (faint out of combat, solid in
   combat), and the enemy you target gets a thin bar with its name at the top of the screen (`/quietchat bars` switches back).
+  `Tidy.lua` hides the LB / RB targeting pictures above the gamepad bar (`/quietchat targets`).
 - `docs/DESIGN.md`: the design for the next part, a phone helper (spell buttons, live map, bags, chat both ways).
 
 ## Status

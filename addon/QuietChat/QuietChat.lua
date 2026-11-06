@@ -8,6 +8,7 @@
 --   /quietchat         turn the hidden chat on or off
 --   /quietchat test    a test line in the pop-up box
 --   /quietchat bars    thin health / power / enemy bars instead of the player and target frames (Bars.lua)
+--   /quietchat targets the LB / RB targeting pictures above the gamepad bar, hidden or shown (Tidy.lua)
 
 local DEFAULTS = { enabled = true, seconds = 15 }
 local KEEP = 400            -- lines of history kept
@@ -281,6 +282,9 @@ SlashCmdList.QUIETCHAT = function(msg)
         return
     elseif msg == "bars" then
         QuietChat_ToggleBars()
+        return
+    elseif msg == "targets" then
+        QuietChat_ToggleTargets()
         return
     end
     db.enabled = not db.enabled

@@ -2,8 +2,9 @@
 ## Title: Quiet Chat
 ## Notes: Chat like a messenger: the chat window stays hidden; messages to you pop up and fade; /qc opens a chat window with filters (All, Whispers, Party, Guild, General, Trade, Say); thin health and enemy bars instead of the player and target frames.
 ## Author: deck-chat
-## Version: 1.2.0
+## Version: 1.3.0
 ## SavedVariables: QuietChatDB
 
 QuietChat.lua
 Bars.lua
+Tidy.lua
