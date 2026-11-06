@@ -3,7 +3,10 @@
 --   * Your enemy: a health bar with its name at the top of the screen, shown while you fight it.
 --   /quietchat bars    turn the bars off (the game's frames come back) or on again
 
+-- The game's frames this replaces. They are protected: an add-on may not change them in combat, so they are
+-- hidden with a state driver (the game itself then keeps them hidden, fights included), set out of combat only.
 local HIDE = { "PlayerFrame", "TargetFrame", "TargetFrameToT" }
+local UNIT_WATCHED = { TargetFrame = true, TargetFrameToT = true }   -- shown by the game while their unit exists
 local WIDTH, HEIGHT, GAP = 0.17, 5, 3    -- player bars: share of the screen's width, pixels tall, pixels apart
 local ENEMY_WIDTH, ENEMY_HEIGHT = 0.30, 8
 
@@ -73,14 +76,30 @@ local function fade(frame, want)
     if math.abs(a - want) < 0.05 then frame:SetAlpha(want) else frame:SetAlpha(a + (want - a) * 0.35) end
 end
 
+local hiddenState, pending = nil, false
+local function hideFrames(on)
+    if hiddenState == on then return end
+    if InCombatLockdown() then pending = true return end
+    for _, name in ipairs(HIDE) do
+        local f = _G[name]
+        if f then
+            if on then
+                if UNIT_WATCHED[name] and UnregisterUnitWatch then UnregisterUnitWatch(f) end
+                RegisterStateDriver(f, "visibility", "hide")
+            else
+                UnregisterStateDriver(f, "visibility")
+                if UNIT_WATCHED[name] and RegisterUnitWatch then RegisterUnitWatch(f) else f:Show() end
+            end
+        end
+    end
+    hiddenState, pending = on, false
+end
+
 local function update()
     local db = settings()
     if not db then return end
     local on = db.bars
-    for _, name in ipairs(HIDE) do
-        local f = _G[name]
-        if f then f:SetAlpha(on and 0 or 1) end
-    end
+    if pending or hiddenState ~= on then hideFrames(on) end
     if not on then
         mine:SetAlpha(0)
         foe:SetAlpha(0)
@@ -117,17 +136,44 @@ local function update()
     end
 end
 
+-- Diagnosis: report any error of the bar code, once each, in the pop-up box (the chat window is hidden),
+-- and the bars' place and size at load; show them for the first 20 seconds whatever the situation.
+local reported, shownAt = {}, nil
+local function report(text)
+    if QuietChatBox then QuietChatBox:AddMessage("|cffff8080Quiet Chat bars:|r " .. text, 1, 0.8, 0.8) end
+end
+local function safeUpdate()
+    local ok, err = pcall(update)
+    if not ok and not reported[err] then
+        reported[err] = true
+        report("error: " .. tostring(err))
+    end
+    if shownAt and GetTime() - shownAt < 20 then
+        mine:SetAlpha(1)
+    end
+end
+local function onEvent(_, event)
+    local ok, err = pcall(layout)
+    if not ok then report("layout error: " .. tostring(err)) return end
+    if event == "PLAYER_ENTERING_WORLD" then
+        shownAt = GetTime()
+        local l, b, w, h = mine:GetRect()
+        report(format("loaded; bars at x %d, y %d, %d x %d; health bar %d wide; screen %d x %d",
+            l or -1, b or -1, w or -1, h or -1, health:GetWidth() or -1, UIParent:GetWidth(), UIParent:GetHeight()))
+    end
+end
+
 local tick = 0
 local driver = CreateFrame("Frame")
 driver:RegisterEvent("PLAYER_ENTERING_WORLD")
 driver:RegisterEvent("DISPLAY_SIZE_CHANGED")
 driver:RegisterEvent("UI_SCALE_CHANGED")
-driver:SetScript("OnEvent", layout)
+driver:SetScript("OnEvent", onEvent)
 driver:SetScript("OnUpdate", function(_, dt)
     tick = tick + dt
     if tick > 0.1 then
         tick = 0
-        update()
+        safeUpdate()
     end
 end)
 
