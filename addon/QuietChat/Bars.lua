@@ -1,5 +1,6 @@
 -- Quiet Chat's bars: the game's player and target frames are hidden; thin bars take their place.
---   * You: health and power (mana, rage, energy) just above the experience bar: faint out of combat, solid in combat.
+--   * You: health and power (mana, rage, energy) as percentages either side of your character, green on the left,
+--     the power colour on the right: faint out of combat, solid in combat.
 --   * Your enemy: a health bar with its name at the top of the screen, shown while it is your target;
 --     the debuffs you cast on it as small icons under the bar, drawn by the game (AuraContainer).
 --   /quietchat bars    turn the bars off (the game's frames come back) or on again
@@ -8,8 +9,8 @@
 -- hidden with a state driver (the game itself then keeps them hidden, fights included), set out of combat only.
 local HIDE = { "PlayerFrame", "TargetFrame", "TargetFrameToT" }
 local UNIT_WATCHED = { TargetFrame = true, TargetFrameToT = true }   -- shown by the game while their unit exists
-local WIDTH, HEIGHT, GAP = 0.085, 5, 3   -- player bars: share of the screen's width, pixels tall, pixels apart
-local ABOVE_XP = 0.028                   -- player bars' bottom edge: share of the screen's height (just above the XP bar)
+local SIDE, BELOW, FONT_SIZE = 0.07, 0.06, 18   -- your numbers: share of the screen's width out from the centre,
+                                               -- share of its height below the centre, text size
 local ENEMY_WIDTH, ENEMY_HEIGHT = 0.30, 8
 
 local function settings()
@@ -35,9 +36,17 @@ end
 local mine = CreateFrame("Frame", "QuietChatPlayerBars", UIParent)
 mine:SetFrameStrata("LOW")
 mine:SetAlpha(0)
-local health = makeBar(mine, HEIGHT)
-health:SetStatusBarColor(0.1, 0.8, 0.1)
-local power = makeBar(mine, HEIGHT)
+mine:SetAllPoints(UIParent)
+local function makeNumber(justify)
+    local text = mine:CreateFontString(nil, "OVERLAY")
+    text:SetFont("Fonts\\FRIZQT__.TTF", FONT_SIZE, "OUTLINE")
+    text:SetShadowOffset(1, -1)
+    text:SetJustifyH(justify)
+    return text
+end
+local health = makeNumber("RIGHT")
+health:SetTextColor(0.25, 1, 0.3)
+local power = makeNumber("LEFT")
 
 -- Your enemy: at the top centre, its name over it
 local foe = CreateFrame("Frame", "QuietChatTargetBar", UIParent)
@@ -97,15 +106,10 @@ end
 
 local function layout()
     local w, h = UIParent:GetWidth(), UIParent:GetHeight()
-    mine:ClearAllPoints()
-    mine:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, h * ABOVE_XP)
-    mine:SetSize(w * WIDTH, HEIGHT * 2 + GAP)
     health:ClearAllPoints()
-    health:SetPoint("TOPLEFT", mine, "TOPLEFT")
-    health:SetPoint("TOPRIGHT", mine, "TOPRIGHT")
+    health:SetPoint("RIGHT", UIParent, "CENTER", -w * SIDE, -h * BELOW)
     power:ClearAllPoints()
-    power:SetPoint("BOTTOMLEFT", mine, "BOTTOMLEFT")
-    power:SetPoint("BOTTOMRIGHT", mine, "BOTTOMRIGHT")
+    power:SetPoint("LEFT", UIParent, "CENTER", w * SIDE, -h * BELOW)
     foe:ClearAllPoints()
     foe:SetPoint("TOP", UIParent, "TOP", 0, -h * 0.07)
     foe:SetSize(w * ENEMY_WIDTH, ENEMY_HEIGHT + 20)
@@ -158,12 +162,13 @@ local function update()
     end
     local fighting = UnitAffectingCombat("player")
 
-    -- You: always there, faint out of combat (whether health is full can't be known: see fill)
+    -- You: always there, faint out of combat (whether health is full can't be known: see fill). The game turns
+    -- health and power into a percentage (0-100) itself; the secret number goes straight into the text.
     local powerType, token = UnitPowerType("player")
     local c = PowerBarColor and (PowerBarColor[token] or PowerBarColor[powerType])
-    if c then power:SetStatusBarColor(c.r, c.g, c.b) end
-    fill(health, UnitHealth("player"), UnitHealthMax("player"))
-    fill(power, UnitPower("player", powerType), UnitPowerMax("player", powerType))
+    if c then power:SetTextColor(c.r, c.g, c.b) end
+    health:SetText(format("%d%%", UnitHealthPercent("player", true, CurveConstants.ScaleTo100)))
+    power:SetText(format("%d%%", UnitPowerPercent("player", powerType, false, CurveConstants.ScaleTo100)))
     fade(mine, fighting and 1 or 0.45)
 
     -- Your enemy: anything you can attack, as soon as it is your target
@@ -214,13 +219,13 @@ local function onEvent(_, event)
     end
     if event == "PLAYER_ENTERING_WORLD" then
         shownAt = GetTime()
-        local l, b, w, h = mine:GetRect()
+        local l, b = health:GetCenter()
         if not dotsTold then
             dotsTold = true
             report(dots and "debuff icons on (AuraContainer)" or ("no debuff icons: " .. tostring(dotsWhy)))
         end
-        report(format("loaded; bars at x %d, y %d, %d x %d; health bar %d wide; screen %d x %d",
-            l or -1, b or -1, w or -1, h or -1, health:GetWidth() or -1, UIParent:GetWidth(), UIParent:GetHeight()))
+        report(format("loaded; health number at x %d, y %d; screen %d x %d",
+            l or -1, b or -1, UIParent:GetWidth(), UIParent:GetHeight()))
     end
 end
 
