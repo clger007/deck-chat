@@ -1,6 +1,7 @@
 -- Quiet Chat: chat like a messenger.
 --   * The game's chat window stays out of sight unless you open it to type.
---   * Messages meant for you (whispers, party, raid, instance, guild) pop up in a small box, then fade.
+--   * Messages meant for you (whispers, party, raid, instance) and the game's own notices (skill-ups, system
+--     announcements) pop up in a small box, then fade. Guild, loot and the channels stay in the chat window.
 --   * A chat window holds everything (the last 400 lines, kept across /reload), with filters:
 --     All, Whispers, Party, Guild, General, Trade, Say. Controller: D-pad left/right (or LB/RB) picks a
 --     filter, D-pad up/down scrolls, B closes.
@@ -13,7 +14,7 @@
 
 local DEFAULTS = { enabled = true, seconds = 15 }
 local KEEP = 400            -- lines of history kept
-local POPUP = { whisper = true, party = true, guild = true }
+local POPUP = { whisper = true, party = true, status = true }
 
 -- chat event → { filter, chat type for the colour, tag shown }
 local EVENTS = {
@@ -34,6 +35,8 @@ local EVENTS = {
     CHAT_MSG_YELL = { "say", "YELL", "Yell" },
     CHAT_MSG_EMOTE = { "say", "EMOTE", nil },
     CHAT_MSG_CHANNEL = { "channel", "CHANNEL", nil },
+    CHAT_MSG_SKILL = { "status", "SKILL", nil },      -- "Your skill in Mining has increased to 21."
+    CHAT_MSG_SYSTEM = { "status", "SYSTEM", nil },    -- level up, quest done, announcements
 }
 local FILTERS = {
     { key = "all", label = "All" }, { key = "whisper", label = "Whispers" }, { key = "party", label = "Party" },
@@ -74,6 +77,8 @@ local function makeLine(event, ...)
     local body
     if event == "CHAT_MSG_EMOTE" then
         body = sender .. " " .. text
+    elseif not tag then
+        body = text
     elseif sender ~= "" then
         body = format("[%s] %s: %s", tag, sender, text)
     else
