@@ -53,7 +53,7 @@ foeLevel:SetPoint("LEFT", foeName, "RIGHT", 6, 0)
 -- Your debuffs on the enemy (DoTs and the like): small icons under its bar, from the left, with the game's own
 -- countdown numbers. Only the ones you cast: the game filters them ("PLAYER"), nothing here compares values.
 local DOT_SIZE, DOT_GAP, DOT_MAX = 14, 2, 8
-local dots = {}
+local dots, dotError = {}, nil
 for i = 1, DOT_MAX do
     local d = CreateFrame("Frame", nil, foe)
     d:SetSize(DOT_SIZE, DOT_SIZE)
@@ -77,7 +77,7 @@ end
 local function setTime(d, aura)
     if C_UnitAuras.GetAuraDuration and d.cd.SetCooldownFromDurationObject then
         local ok = pcall(function()
-            d.cd:SetCooldownFromDurationObject(C_UnitAuras.GetAuraDuration("target", aura.auraInstanceID))
+            d.cd:SetCooldownFromDurationObject(C_UnitAuras.GetAuraDuration(d.unit, aura.auraInstanceID))
         end)
         if ok then return end
     end
@@ -86,13 +86,50 @@ local function setTime(d, aura)
     end
 end
 
+-- Forever may refuse add-ons the target's auras while they are secret (in combat). So several ways are tried, in
+-- order, and the first that the game allows is kept: through "target", or through the target's nameplate unit
+-- (where Plater reads them); "HARMFUL|PLAYER" (only yours) before "HARMFUL" (all debuffs).
+local dotWay, dotWayTold = nil, false
+local function unitsToTry()
+    local units = { "target" }
+    local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit and C_NamePlate.GetNamePlateForUnit("target")
+    if plate and plate.namePlateUnitToken then units[2] = plate.namePlateUnitToken end
+    return units
+end
+local function readAuras(unit, filter)
+    if C_UnitAuras.GetUnitAuras then return C_UnitAuras.GetUnitAuras(unit, filter, DOT_MAX) end
+    local list = {}
+    for i = 1, DOT_MAX do
+        local aura = C_UnitAuras.GetAuraDataByIndex(unit, i, filter)
+        if not aura then break end
+        list[i] = aura
+    end
+    return list
+end
+local function myDebuffs()
+    local lastErr
+    for _, unit in ipairs(unitsToTry()) do
+        for _, filter in ipairs({ "HARMFUL|PLAYER", "HARMFUL" }) do
+            local ok, list = pcall(readAuras, unit, filter)
+            if ok then
+                local way = (unit == "target" and "target" or "nameplate") .. " " .. filter
+                if way ~= dotWay then dotWay, dotWayTold = way, false end
+                return list, unit
+            end
+            lastErr = list
+        end
+    end
+    error(lastErr)
+end
+
 local function showDots()
     local n = 0
-    for i = 1, DOT_MAX do
-        local aura = C_UnitAuras.GetAuraDataByIndex("target", i, "HARMFUL|PLAYER")
-        if not aura then break end
+    local list, unit = myDebuffs()
+    for i, aura in ipairs(list) do
+        if i > DOT_MAX then break end
         n = i
         local d = dots[i]
+        d.unit = unit
         d.icon:SetTexture(aura.icon)
         setTime(d, aura)
         d:Show()
@@ -183,7 +220,12 @@ local function update()
         else
             foeBar:SetStatusBarColor(0.85, 0.7, 0.1)   -- neutral: yellow, as the game colours it
         end
-        showDots()
+        -- If the game refuses the auras anyway: no icons, the error once in the box, and the bar carries on
+        local ok, err = pcall(showDots)
+        if not ok then
+            for i = 1, DOT_MAX do dots[i]:Hide() end
+            dotError = err
+        end
         fade(foe, 1)
     else
         fade(foe, 0)
@@ -198,6 +240,11 @@ local function report(text)
 end
 local function safeUpdate()
     local ok, err = pcall(update)
+    if ok and dotError then ok, err, dotError = false, "debuff icons: " .. tostring(dotError), nil end
+    if dotWay and not dotWayTold and UnitAffectingCombat("player") then
+        dotWayTold = true
+        report("debuff icons in combat via " .. dotWay)
+    end
     if not ok and not reported[err] then
         reported[err] = true
         report("error: " .. tostring(err))
