@@ -67,6 +67,12 @@
   #send:active { border-image-source: url(/assets/button-down.png); padding-top: 10px; padding-bottom: 7px; }
   #send:disabled { filter: grayscale(1) brightness(.7); }
 
+  .quick { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 8px; }
+  .quick button { font: 15px var(--font); color: var(--gold); text-shadow: 1px 1px 0 #000; padding: 7px 2px 6px;
+                  border: 6px solid transparent; background: none; cursor: pointer;
+                  border-image: url(/assets/button-up.png) 6 8 fill / 6px 8px; }
+  .quick button:active { border-image-source: url(/assets/button-down.png); }
+
   #err { color: #ff2020; text-align: center; min-height: 1.4em; margin: 8px 0 2px; font-size: 15px; }
 
   .log { margin-top: 10px; background: rgba(0,0,0,.55); padding: 8px 10px; min-height: 48px; }
@@ -98,6 +104,11 @@
   <input id="target" placeholder="Whisper to: character name" autocapitalize="words" autocomplete="off" hidden>
 
   <button id="send">Send</button>
+  <!-- Commands used often: one tap types the command in WoW, as if sent on the current channel -->
+  <div class="quick">
+    <button data-cmd="/reload">Reload UI</button>
+    <button data-cmd="/qc">Chat window</button>
+  </div>
   <div id="err"></div>
 </div>
 
@@ -120,15 +131,19 @@ function showChannel() {
 document.querySelectorAll("input[name=ch]").forEach(r => r.addEventListener("change", showChannel));
 showChannel();
 
+async function post(body) {
+  const r = await fetch("/api/send", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.status);
+}
+
 async function send() {
   const text = $("text").value.trim();
   if (!text) return;
   $("send").disabled = true; $("err").textContent = "";
   try {
-    const r = await fetch("/api/send", {method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({text, channel: channel(), target: $("target").value})});
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || r.status);
+    await post({text, channel: channel(), target: $("target").value});
     $("text").value = "";
   } catch (e) { $("err").textContent = e.message; }
   $("send").disabled = false;
@@ -136,6 +151,13 @@ async function send() {
   refresh();
 }
 $("send").addEventListener("click", send);
+
+document.querySelectorAll(".quick button").forEach(b => b.addEventListener("click", async () => {
+  $("err").textContent = "";
+  try { await post({text: b.dataset.cmd, channel: "current", target: ""}); }
+  catch (e) { $("err").textContent = e.message; }
+  refresh();
+}));
 $("text").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
 });

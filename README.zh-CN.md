@@ -46,6 +46,7 @@ WoW 聊天框的样子，每个频道用游戏里的颜色。
    放到 WoW 的 X 剪贴板里，用 Ctrl+V 粘贴。只在 gamescope 最前面的窗口是 `Wow.exe` 时打字，所以字不会打进 Steam
    的菜单。
 4. agent 回报结果；页面上每条消息显示 waiting、typing、sent 或 failed。
+5. Send 下面有快捷按钮，一点就输入一条命令：**Reload UI**（`/reload`）和 **Chat window**（`/qc`）。它们和在当前频道发一句话一样发出去。
 
 ## Files
 
