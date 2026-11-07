@@ -1,7 +1,7 @@
 -- Quiet Chat: chat like a messenger.
 --   * The game's chat window stays out of sight unless you open it to type.
---   * Messages meant for you (whispers, party, raid, instance) and the game's own notices (skill-ups, system
---     announcements) pop up in a small box, then fade. Guild, loot and the channels stay in the chat window.
+--   * Messages meant for you (whispers, party, raid, instance) and the game's own notices (skill-ups, experience,
+--     reputation, system announcements) pop up in a small box, the newest 3, then fade. Guild, loot and the channels stay in the chat window.
 --   * A chat window holds everything (the last 400 lines, kept across /reload), with filters:
 --     All, Whispers, Party, Guild, General, Trade, Say. Controller: D-pad left/right (or LB/RB) picks a
 --     filter, D-pad up/down scrolls, B closes.
@@ -37,6 +37,8 @@ local EVENTS = {
     CHAT_MSG_CHANNEL = { "channel", "CHANNEL", nil },
     CHAT_MSG_SKILL = { "status", "SKILL", nil },      -- "Your skill in Mining has increased to 21."
     CHAT_MSG_SYSTEM = { "status", "SYSTEM", nil },    -- level up, quest done, announcements
+    CHAT_MSG_COMBAT_XP_GAIN = { "status", "COMBAT_XP_GAIN", nil },                    -- "... dies, you gain 56 experience."
+    CHAT_MSG_COMBAT_FACTION_CHANGE = { "status", "COMBAT_FACTION_CHANGE", nil },      -- "Reputation with ... increased by 25."
 }
 local FILTERS = {
     { key = "all", label = "All" }, { key = "whisper", label = "Whispers" }, { key = "party", label = "Party" },
@@ -96,7 +98,7 @@ box:SetPoint("BOTTOMLEFT", ChatFrame1, "BOTTOMLEFT", 0, 0)
 box:SetFontObject(ChatFontNormal)
 box:SetJustifyH("LEFT")
 box:SetInsertMode("BOTTOM")
-box:SetMaxLines(8)
+box:SetMaxLines(3)   -- only the newest 3 messages
 box:SetFading(true)
 box:SetFadeDuration(1.5)
 box:SetTimeVisible(DEFAULTS.seconds)
