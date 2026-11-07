@@ -60,7 +60,10 @@ local function makeDots()
         return "this game has no AuraContainer"
     end
     local seconds = C_StringUtil and C_StringUtil.CreateNumericRuleFormatter and C_StringUtil.CreateNumericRuleFormatter()
-    if seconds then seconds:AddBreakpoint({ threshold = 0, step = 1, format = "%d" }) end
+    if seconds then   -- 45, then 3m from a minute on
+        seconds:AddBreakpoint({ threshold = 0, step = 1, format = "%d" })
+        seconds:AddBreakpoint({ threshold = 60, format = "%dm", components = { { div = 60, step = 1 } } })
+    end
     local layout = { elementSpacing = DOT_GAP, lineSpacing = DOT_GAP, groupLineSpacing = DOT_GAP,
         elementWidth = DOT_SIZE, elementHeight = DOT_SIZE, maximumLineSize = math.huge }
     local c = CreateFrame("AuraContainer", "QuietChatTargetDebuffs", foe, "CustomAuraContainerTemplate")
@@ -72,6 +75,7 @@ local function makeDots()
         sortDirection = AuraContainerSortDirection.Normal,
         layout = layout,
         initializeFrame = function(button)
+            button:SetSize(DOT_SIZE, DOT_SIZE)
             button.Icon = button:CreateTexture(nil, "ARTWORK")
             button.Icon:SetAllPoints()
             button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
