@@ -9,9 +9,9 @@
 -- hidden with a state driver (the game itself then keeps them hidden, fights included), set out of combat only.
 local HIDE = { "PlayerFrame", "TargetFrame", "TargetFrameToT" }
 local UNIT_WATCHED = { TargetFrame = true, TargetFrameToT = true }   -- shown by the game while their unit exists
-local SIDE, BELOW, FONT_SIZE = 0.09, 0.105, 18  -- your numbers: share of the screen's width out from the centre,
-                                               -- share of its height below the centre (by the feet, either side
-                                               -- of the cast bar), text size
+local SIDE, BELOW, FONT_SIZE = 0.012, 0.14, 18  -- your numbers: share of the screen's width out from the centre,
+                                               -- share of its height below the centre (side by side just under
+                                               -- the cast bar), text size
 local ENEMY_WIDTH, ENEMY_HEIGHT = 0.30, 8
 
 local function settings()
