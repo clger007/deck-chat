@@ -50,8 +50,8 @@ Two parts: a small web server on a machine that is always on, and an agent on th
    pasted with Ctrl+V. It types only while gamescope's focused window belongs to `Wow.exe`, so text never lands in
    Steam's menus.
 4. The agent reports back; the page shows each message as waiting, typing, sent or failed.
-5. Under Send, quick buttons type a command in one tap: **Reload UI** (`/reload`) and **Chat window** (`/qc`). They go
-   out like a line on the current channel.
+5. The **Commands** tab (next to **Chat**) types a command in one tap: **Reload UI** (`/reload`), **Chat window**
+   (`/qc`), **Game frames on / off** (`/quietchat bars`). They go out like a line on the current channel.
 
 ## Files
 
