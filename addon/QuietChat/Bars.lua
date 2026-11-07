@@ -166,7 +166,11 @@ local function update()
     -- health and power into a percentage (0-100) itself; the secret number goes straight into the text.
     local powerType, token = UnitPowerType("player")
     local c = PowerBarColor and (PowerBarColor[token] or PowerBarColor[powerType])
-    if c then power:SetTextColor(c.r, c.g, c.b) end
+    if token == "MANA" then
+        power:SetTextColor(0.35, 0.65, 1)   -- the game's mana blue is too dark to read on the ground
+    elseif c then
+        power:SetTextColor(c.r, c.g, c.b)
+    end
     health:SetText(format("%d%%", UnitHealthPercent("player", true, CurveConstants.ScaleTo100)))
     power:SetText(format("%d%%", UnitPowerPercent("player", powerType, false, CurveConstants.ScaleTo100)))
     fade(mine, fighting and 1 or 0.45)
