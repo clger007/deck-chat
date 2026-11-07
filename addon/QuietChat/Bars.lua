@@ -1,6 +1,7 @@
 -- Quiet Chat's bars: the game's player and target frames are hidden; thin bars take their place.
 --   * You: health and power (mana, rage, energy) just above the experience bar: faint out of combat, solid in combat.
---   * Your enemy: a health bar with its name at the top of the screen, shown while it is your target.
+--   * Your enemy: a health bar with its name at the top of the screen, shown while it is your target;
+--     the debuffs you put on it as small icons under the bar, from the left.
 --   /quietchat bars    turn the bars off (the game's frames come back) or on again
 
 -- The game's frames this replaces. They are protected: an add-on may not change them in combat, so they are
@@ -48,6 +49,56 @@ local foeName = foe:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 foeName:SetPoint("BOTTOM", foeBar, "TOP", -10, 4)
 local foeLevel = foe:CreateFontString(nil, "OVERLAY", "GameFontDisable")
 foeLevel:SetPoint("LEFT", foeName, "RIGHT", 6, 0)
+
+-- Your debuffs on the enemy (DoTs and the like): small icons under its bar, from the left, with the game's own
+-- countdown numbers. Only the ones you cast: the game filters them ("PLAYER"), nothing here compares values.
+local DOT_SIZE, DOT_GAP, DOT_MAX = 14, 2, 8
+local dots = {}
+for i = 1, DOT_MAX do
+    local d = CreateFrame("Frame", nil, foe)
+    d:SetSize(DOT_SIZE, DOT_SIZE)
+    d:SetPoint("TOPLEFT", foeBar, "BOTTOMLEFT", (i - 1) * (DOT_SIZE + DOT_GAP), -3)
+    d.icon = d:CreateTexture(nil, "ARTWORK")
+    d.icon:SetAllPoints()
+    d.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    d.cd = CreateFrame("Cooldown", nil, d, "CooldownFrameTemplate")
+    d.cd:SetAllPoints()
+    d.cd:SetDrawEdge(false)
+    d.cd:SetDrawSwipe(false)
+    if d.cd.SetHideCountdownNumbers then d.cd:SetHideCountdownNumbers(false) end
+    local numbers = d.cd.GetCountdownFontString and d.cd:GetCountdownFontString()
+    if numbers then numbers:SetFont(STANDARD_TEXT_FONT, 9, "OUTLINE") end
+    d:Hide()
+    dots[i] = d
+end
+
+-- The time left goes to the cooldown frame as the game hands it over: a duration object where the game has one
+-- (secret values), otherwise start and length.
+local function setTime(d, aura)
+    if C_UnitAuras.GetAuraDuration and d.cd.SetCooldownFromDurationObject then
+        local ok = pcall(function()
+            d.cd:SetCooldownFromDurationObject(C_UnitAuras.GetAuraDuration("target", aura.auraInstanceID))
+        end)
+        if ok then return end
+    end
+    if not pcall(function() d.cd:SetCooldown(aura.expirationTime - aura.duration, aura.duration) end) then
+        d.cd:SetCooldown(0, 0)
+    end
+end
+
+local function showDots()
+    local n = 0
+    for i = 1, DOT_MAX do
+        local aura = C_UnitAuras.GetAuraDataByIndex("target", i, "HARMFUL|PLAYER")
+        if not aura then break end
+        n = i
+        local d = dots[i]
+        d.icon:SetTexture(aura.icon)
+        setTime(d, aura)
+        d:Show()
+    end
+    for i = n + 1, DOT_MAX do dots[i]:Hide() end
+end
 
 local function layout()
     local w, h = UIParent:GetWidth(), UIParent:GetHeight()
@@ -132,6 +183,7 @@ local function update()
         else
             foeBar:SetStatusBarColor(0.85, 0.7, 0.1)   -- neutral: yellow, as the game colours it
         end
+        showDots()
         fade(foe, 1)
     else
         fade(foe, 0)
