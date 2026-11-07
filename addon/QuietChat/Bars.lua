@@ -1,6 +1,7 @@
 -- Quiet Chat's bars: the game's player and target frames are hidden; thin bars take their place.
 --   * You: health and power (mana, rage, energy) just above the experience bar: faint out of combat, solid in combat.
---   * Your enemy: a health bar with its name at the top of the screen, shown while it is your target.
+--   * Your enemy: a health bar with its name at the top of the screen, shown while it is your target;
+--     the debuffs you cast on it as small icons under the bar, drawn by the game (AuraContainer).
 --   /quietchat bars    turn the bars off (the game's frames come back) or on again
 
 -- The game's frames this replaces. They are protected: an add-on may not change them in combat, so they are
@@ -48,6 +49,47 @@ local foeName = foe:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 foeName:SetPoint("BOTTOM", foeBar, "TOP", -10, 4)
 local foeLevel = foe:CreateFontString(nil, "OVERLAY", "GameFontDisable")
 foeLevel:SetPoint("LEFT", foeName, "RIGHT", 6, 0)
+
+-- Your debuffs on the enemy (DoTs and the like): small icons under its bar, from the left, with seconds left.
+-- Add-ons may not read auras in combat, so the game draws them itself in an AuraContainer; this only says where,
+-- how big, and which: "HARMFUL|PLAYER", the ones you cast. Clients without AuraContainer get no icons.
+local DOT_SIZE, DOT_GAP, DOT_MAX = 14, 2, 8
+local dots
+local function makeDots()
+    if not (C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("CustomAuraContainerTemplate")) then
+        return "this game has no AuraContainer"
+    end
+    local seconds = C_StringUtil and C_StringUtil.CreateNumericRuleFormatter and C_StringUtil.CreateNumericRuleFormatter()
+    if seconds then seconds:AddBreakpoint({ threshold = 0, step = 1, format = "%d" }) end
+    local layout = { elementSpacing = DOT_GAP, lineSpacing = DOT_GAP, groupLineSpacing = DOT_GAP,
+        elementWidth = DOT_SIZE, elementHeight = DOT_SIZE, maximumLineSize = math.huge }
+    local c = CreateFrame("AuraContainer", "QuietChatTargetDebuffs", foe, "CustomAuraContainerTemplate")
+    c:SetSize(1, 1)
+    c:SetPoint("TOPLEFT", foeBar, "BOTTOMLEFT", 0, -3)
+    c:AddAuraGroup("mine", "HARMFUL|PLAYER", {
+        maxFrameCount = DOT_MAX,
+        sortMethod = AuraContainerSortMethod.Default,
+        sortDirection = AuraContainerSortDirection.Normal,
+        layout = layout,
+        initializeFrame = function(button)
+            button.Icon = button:CreateTexture(nil, "ARTWORK")
+            button.Icon:SetAllPoints()
+            button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            button:SetIcon(button.Icon)
+            button.Seconds = button:CreateFontString(nil, "OVERLAY")
+            button.Seconds:SetFont(STANDARD_TEXT_FONT, 9, "OUTLINE")
+            button.Seconds:SetPoint("CENTER", 0, 0)
+            button:SetDurationText(button.Seconds, { textFormatter = seconds })
+        end,
+    })
+    c:SetAuraGroupLayout("mine", layout)
+    c:SetFlowLayoutAnchorPoint("TOPLEFT")
+    c:SetFlowLayoutGrowthDirection(AnchorUtil.FlowDirection.Right, AnchorUtil.FlowDirection.Down)
+    c:SetFlowLayoutMaximumLineSize(math.huge)
+    c:SetEnabled(true)
+    c:SetUnit("target")
+    dots = c
+end
 
 local function layout()
     local w, h = UIParent:GetWidth(), UIParent:GetHeight()
@@ -154,12 +196,25 @@ local function safeUpdate()
         mine:SetAlpha(1)
     end
 end
+local _, dotsWhy = pcall(makeDots)
+local dotsTold = false
 local function onEvent(_, event)
     local ok, err = pcall(layout)
     if not ok then report("layout error: " .. tostring(err)) return end
+    if event == "PLAYER_TARGET_CHANGED" then
+        if dots then
+            local ok, err = pcall(function() dots:SetUnit("target") dots:UpdateAllAuras() end)
+            if not ok and not reported[err] then reported[err] = true report("debuff icons: " .. tostring(err)) end
+        end
+        return
+    end
     if event == "PLAYER_ENTERING_WORLD" then
         shownAt = GetTime()
         local l, b, w, h = mine:GetRect()
+        if not dotsTold then
+            dotsTold = true
+            report(dots and "debuff icons on (AuraContainer)" or ("no debuff icons: " .. tostring(dotsWhy)))
+        end
         report(format("loaded; bars at x %d, y %d, %d x %d; health bar %d wide; screen %d x %d",
             l or -1, b or -1, w or -1, h or -1, health:GetWidth() or -1, UIParent:GetWidth(), UIParent:GetHeight()))
     end
@@ -170,6 +225,7 @@ local driver = CreateFrame("Frame")
 driver:RegisterEvent("PLAYER_ENTERING_WORLD")
 driver:RegisterEvent("DISPLAY_SIZE_CHANGED")
 driver:RegisterEvent("UI_SCALE_CHANGED")
+driver:RegisterEvent("PLAYER_TARGET_CHANGED")
 driver:SetScript("OnEvent", onEvent)
 driver:SetScript("OnUpdate", function(_, dt)
     tick = tick + dt
