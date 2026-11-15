@@ -62,6 +62,7 @@ Two parts: a small web server on a machine that is always on, and an agent on th
   turns them into what the page uses.
 - `assets/background.jpg`: a screenshot of the Dark Portal; replace it with any image.
 - `systemd/deck-chat.service`, `deck/deck-chat-agent.service`: the two services.
+- `decky/`: a Decky Loader plugin, **WoW Chat**, with one switch in the Quick Access menu that starts and stops both services (`systemctl --user enable/disable --now`). Build: `cd decky && npx pnpm@9 install && npx pnpm@9 run build`; copy `plugin.json`, `main.py`, `package.json`, `LICENSE` and `dist/index.js` to `~/homebrew/plugins/WowChat/` and restart `plugin_loader`. The server can run on the Deck itself, served over https by `tailscale serve --bg --https=443 http://127.0.0.1:3022`.
 - `addon/QuietChat/`: a WoW add-on that hides the chat window unless you open it; whispers, party, raid and
   instance messages and the game's notices (skill-ups, experience, reputation, system announcements) pop up in a
   small box, the newest 3, for 15 seconds, then fade (`/quietchat` turns it off and on). `/qc` (or

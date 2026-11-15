@@ -56,6 +56,7 @@ WoW 聊天框的样子，每个频道用游戏里的颜色。
 - `fetch_assets.py`：从 wago.tools 提供的游戏文件下载 WoW 的字体和界面贴图，做成页面用的样子。
 - `assets/background.jpg`：黑暗之门的截图；换成什么图都行。
 - `systemd/deck-chat.service`、`deck/deck-chat-agent.service`：两个服务。
+- `decky/`：Decky Loader 插件 **WoW Chat**，快捷菜单里一个开关，启停两个服务（`systemctl --user enable/disable --now`）。编译：`cd decky && npx pnpm@9 install && npx pnpm@9 run build`；把 `plugin.json`、`main.py`、`package.json`、`LICENSE` 和 `dist/index.js` 拷到 `~/homebrew/plugins/WowChat/`，重启 `plugin_loader`。服务器也可以跑在 Deck 上，用 `tailscale serve --bg --https=443 http://127.0.0.1:3022` 提供 https。
 - `addon/QuietChat/`：WoW 插件：聊天窗口平时隐藏，打开聊天才显示；悄悄话、队伍、团队、副本消息和游戏的通知（技能升级、经验、声望、系统公告）在一个小框里显示最新 3 条，
   15 秒后淡出（`/quietchat` 开关）。`/qc`（或它的按键绑定）打开聊天窗口：最近 400 行，可筛选全部、悄悄话、队伍、公会、
   综合、交易、说；手柄十字键左右换筛选、上下滚动，B 关闭。`Bars.lua` 隐藏游戏的玩家框和目标框：角色两侧显示

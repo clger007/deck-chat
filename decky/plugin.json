@@ -1,0 +1,11 @@
+{
+  "name": "WoW Chat",
+  "author": "Ken",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["chat"],
+    "description": "Turn Deck Chat (phone page + WoW typing agent) on and off.",
+    "image": ""
+  }
+}
