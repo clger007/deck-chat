@@ -12,6 +12,7 @@ Needs only what SteamOS ships: python3 with python-evdev, libX11 and xprop.
 import ctypes
 import json
 import os
+import re
 import subprocess
 import threading
 import time
@@ -22,6 +23,10 @@ from evdev import UInput, ecodes as e
 
 SERVER = os.environ["DECK_CHAT_SERVER"].rstrip("/")  # e.g. https://chat.example.com
 HEADERS = {"X-Deck-Agent": "1", "Content-Type": "application/json"}
+# WoW writes chat here while /chatlog is on (the QuietChat add-on turns it on at login)
+CHAT_LOG = os.environ.get("DECK_CHAT_LOG", os.path.expanduser(
+    "~/.local/share/Steam/steamapps/compatdata/BattleNet/pfx/drive_c/Program Files (x86)/World of Warcraft/"
+    "_forever_/Logs/WoWChatLog.txt"))
 KEY_GAP = 0.012     # seconds a key is held, and between keys
 LINE_GAP = 0.35     # after a line is sent, before the next one opens the chat box
 
@@ -187,7 +192,63 @@ def call(path, body=None, timeout=35):
         return r.status, r.read()
 
 
+# One line of WoWChatLog.txt: "11/6 21:28:14.511  [Party] Name: text", "Name says: text", "Name whispers: text" …
+LOG_LINE = re.compile(r"^\d+/\d+ \d+:\d+:\d+\.\d+  (.*)$")
+BRACKET = {"Party": "party", "Party Leader": "party", "Raid": "raid", "Raid Leader": "raid", "Raid Warning": "raid",
+           "Instance": "instance", "Instance Leader": "instance", "Guild": "guild", "Officer": "guild"}
+SPOKEN = [(re.compile(r"^(.+?) says: (.*)$"), "say"), (re.compile(r"^(.+?) yells: (.*)$"), "yell"),
+          (re.compile(r"^(.+?) whispers: (.*)$"), "whisper"), (re.compile(r"^To (.+?): (.*)$"), "to")]
+
+
+def parse(raw):
+    """A chat log line → {kind, who, text}, or None for channels left out (General, Trade …) and system lines."""
+    m = LOG_LINE.match(raw.rstrip("\r\n"))
+    if not m:
+        return None
+    body = m.group(1)
+    b = re.match(r"^\[([^\]]+)\] ([^:]+): (.*)$", body)
+    if b:
+        kind = BRACKET.get(b.group(1))
+        return kind and {"kind": kind, "who": b.group(2), "text": b.group(3)}
+    for pattern, kind in SPOKEN:
+        s = pattern.match(body)
+        if s:
+            return {"kind": kind, "who": s.group(1), "text": s.group(2)}
+    return None
+
+
+def follow_chat_log():
+    """Send each new party, raid, instance, guild, say, yell and whisper line of WoW's chat log to the server.
+    Starts at the end of the file; reopens it when WoW starts a new one."""
+    pos = None
+    while True:
+        time.sleep(1)
+        try:
+            size = os.path.getsize(CHAT_LOG)
+        except OSError:
+            pos = 0
+            continue
+        if pos is None or size < pos:
+            pos = size if pos is None else 0
+        if size == pos:
+            continue
+        with open(CHAT_LOG, "rb") as f:
+            f.seek(pos)
+            chunk = f.read(size - pos)
+        end = chunk.rfind(b"\n") + 1  # leave a half-written line for next time
+        pos += end
+        lines = [h for h in (parse(r) for r in chunk[:end].decode("utf-8", "replace").splitlines()) if h]
+        for h in lines:
+            h["at"] = time.time()
+        if lines:
+            try:
+                call("/api/heard", {"lines": lines}, timeout=10)
+            except (urllib.error.URLError, OSError, TimeoutError):
+                pass
+
+
 def main():
+    threading.Thread(target=follow_chat_log, daemon=True).start()
     keys = sorted({k for k, _ in KEYS.values()} | {e.KEY_ENTER, e.KEY_LEFTSHIFT, e.KEY_LEFTCTRL, e.KEY_ESC,
                                                  e.KEY_BACKSPACE})
     with UInput({e.EV_KEY: keys}, name="Deck Chat keyboard") as ui:

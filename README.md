@@ -50,7 +50,8 @@ Two parts: a small web server on a machine that is always on, and an agent on th
    pasted with Ctrl+V. It types only while gamescope's focused window belongs to `Wow.exe`, so text never lands in
    Steam's menus.
 4. The agent reports back; the page shows each message as waiting, typing, sent or failed.
-5. The **Commands** tab (next to **Chat**) types a command in one tap: **Reload UI** (`/reload`), **Chat window**
+5. Incoming chat: the QuietChat add-on turns on `/chatlog` at login, so WoW writes chat to `Logs/WoWChatLog.txt`. The agent follows that file and sends party, raid, instance, guild, say, yell and whisper lines to the server (memory only, the last 200); the page shows them above the tabs. The **Quick** tab sends a preset English reply (ty, omw, need heal …) on the channel picked on the Chat tab.
+6. The **Commands** tab (next to **Chat**) types a command in one tap: **Reload UI** (`/reload`), **Chat window**
    (`/qc`), **Game frames on / off** (`/quietchat bars`). They go out like a line on the current channel.
 
 ## Files

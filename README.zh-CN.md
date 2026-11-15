@@ -46,7 +46,8 @@ WoW 聊天框的样子，每个频道用游戏里的颜色。
    放到 WoW 的 X 剪贴板里，用 Ctrl+V 粘贴。只在 gamescope 最前面的窗口是 `Wow.exe` 时打字，所以字不会打进 Steam
    的菜单。
 4. agent 回报结果；页面上每条消息显示 waiting、typing、sent 或 failed。
-5. **Commands** 标签页（在 **Chat** 旁边）一点就输入一条命令：**Reload UI**（`/reload`）、**Chat window**（`/qc`）、**Game frames on / off**（`/quietchat bars`）。它们和在当前频道发一句话一样发出去。
+5. 收消息：QuietChat 插件登录时打开 `/chatlog`，WoW 把聊天写进 `Logs/WoWChatLog.txt`。agent 盯着这个文件，把小队、团队、副本、公会、说、喊和密语发给服务器（只在内存里，最近 200 条），网页显示在标签页上方。**Quick** 标签页一点就用 Chat 页选的频道发一句预设的英文回复（ty、omw、need heal …）。
+6. **Commands** 标签页（在 **Chat** 旁边）一点就输入一条命令：**Reload UI**（`/reload`）、**Chat window**（`/qc`）、**Game frames on / off**（`/quietchat bars`）。它们和在当前频道发一句话一样发出去。
 
 ## Files
 

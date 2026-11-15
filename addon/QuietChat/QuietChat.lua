@@ -268,6 +268,8 @@ events:SetScript("OnEvent", function(_, event, ...)
         db.history = type(db.history) == "table" and db.history or {}
         box:SetTimeVisible(db.seconds)
         apply()
+        -- WoW Chat on the phone reads Logs/WoWChatLog.txt; /chatlog is off at every login, so turn it on
+        if LoggingChat and not LoggingChat() then LoggingChat(true) end
         return
     end
     if not db then return end

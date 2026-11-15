@@ -40,6 +40,10 @@ lock = threading.Condition()
 messages = []           # newest last: {id, text, lines, status, error, at}
 next_id = 1
 agent_seen = 0.0
+heard = []              # chat lines the Deck read from WoW's chat log, newest last: {id, at, kind, who, text}
+heard_id = 1
+HEARD_KEEP = 200
+HEARD_KINDS = {"party", "raid", "instance", "guild", "say", "yell", "whisper", "to"}
 
 
 def clean(text):
@@ -134,7 +138,8 @@ class Handler(BaseHTTPRequestHandler):
                 now = time.time()
                 expire(now)
                 return self.reply(200, {"deck": now - agent_seen < AGENT_FRESH,
-                                        "messages": [public(m) for m in messages[-10:]][::-1]})
+                                        "messages": [public(m) for m in messages[-10:]][::-1],
+                                        "heard": heard[-60:]})
         if path == "/api/next":  # the Deck agent, long poll
             if self.headers.get("X-Deck-Agent") != "1":
                 return self.reply(403, {"error": "agent only"})
@@ -156,7 +161,7 @@ class Handler(BaseHTTPRequestHandler):
         self.reply(404, {"error": "not found"})
 
     def do_POST(self):
-        global next_id
+        global next_id, heard_id
         if not self.ok_host():
             return
         path = self.path.split("?")[0]
@@ -193,6 +198,18 @@ class Handler(BaseHTTPRequestHandler):
                 messages.append(m)
                 lock.notify_all()
             return self.reply(200, public(m))
+        if path == "/api/heard":  # the Deck agent sends new lines from WoW's chat log
+            if self.headers.get("X-Deck-Agent") != "1":
+                return self.reply(403, {"error": "agent only"})
+            with lock:
+                for h in data.get("lines", [])[:100]:
+                    if h.get("kind") not in HEARD_KINDS:
+                        continue
+                    heard.append({"id": heard_id, "at": float(h.get("at") or time.time()), "kind": h["kind"],
+                                  "who": str(h.get("who", ""))[:60], "text": str(h.get("text", ""))[:600]})
+                    heard_id += 1
+                del heard[:-HEARD_KEEP]
+            return self.reply(200, {"ok": True})
         if path == "/api/done":  # the Deck agent reports one message
             if self.headers.get("X-Deck-Agent") != "1":
                 return self.reply(403, {"error": "agent only"})
