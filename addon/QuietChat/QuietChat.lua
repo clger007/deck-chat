@@ -213,8 +213,12 @@ BINDING_NAME_QUIETCHAT_TOGGLE = "Open / close the chat window"
 -- The game's chat window: out of sight while the chat isn't open
 ---------------------------------------------------------------------------
 -- By name: some of these may not exist in this version of the game
-local PARTS = { "ChatFrame1", "ChatFrame1Tab", "GeneralDockManager", "ChatFrame1ButtonFrame",
-                "ChatFrameMenuButton", "ChatFrameChannelButton", "QuickJoinToastButton", "ChatFrame1EditBox" }
+local PARTS = { "GeneralDockManager", "ChatFrameMenuButton", "ChatFrameChannelButton", "QuickJoinToastButton",
+                "ChatFrame1EditBox", "CombatLogQuickButtonFrame_Custom" }
+-- Every chat window (ChatFrame2 is the Combat Log), its tab and its buttons
+for i = 1, (NUM_CHAT_WINDOWS or 10) do
+    for _, suffix in ipairs({ "", "Tab", "ButtonFrame" }) do PARTS[#PARTS + 1] = "ChatFrame" .. i .. suffix end
+end
 
 local function chatOpen()
     local eb = ChatFrame1EditBox
@@ -226,6 +230,11 @@ local function apply()
     for _, name in ipairs(PARTS) do
         local f = _G[name]
         if f then f:SetAlpha(show and 1 or 0) end
+    end
+    -- If another tab (say the Combat Log) got picked, go back to the main one
+    if not show and FCF_SelectDockFrame and GENERAL_CHAT_DOCK and GENERAL_CHAT_DOCK.selected
+       and GENERAL_CHAT_DOCK.selected ~= ChatFrame1 and not InCombatLockdown() then
+        FCF_SelectDockFrame(ChatFrame1)
     end
     box:SetShown(db.enabled and not show and not win:IsShown())
 end
