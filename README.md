@@ -71,7 +71,8 @@ Two parts: a small web server on a machine that is always on, and an agent on th
   Trade, Say; on a controller D-pad left/right picks the filter, up/down scrolls, B closes. `Bars.lua` hides the
   game's player and target frames: your health and power show as percentages either side of your character (green left, the power colour right; faint
   out of combat, solid in combat), and the enemy you target gets a thin bar with its name at the top of the screen, with the debuffs you cast on it as small
-  icons under the bar, drawn by the game's AuraContainer (`/quietchat bars` switches back).
+  icons under the bar, drawn by the game's AuraContainer, and your combo points as five dots under its right end while
+  you use energy (rogue, cat form) (`/quietchat bars` switches back).
   `Tidy.lua` hides the LB / RB targeting pictures above the gamepad bar (`/quietchat targets`). `Aim.lua` makes
   controller spells go to the enemy under the centre dot right now (`/quietchat aim`).
 - `docs/DESIGN.md`: the design for the next part, a phone helper (spell buttons, live map, bags, chat both ways).

@@ -2,7 +2,8 @@
 --   * You: health and power (mana, rage, energy) as percentages either side of your character, green on the left,
 --     the power colour on the right: faint out of combat, solid in combat.
 --   * Your enemy: a health bar with its name at the top of the screen, shown while it is your target;
---     the debuffs you cast on it as small icons under the bar, drawn by the game (AuraContainer).
+--     the debuffs you cast on it as small icons under the bar, drawn by the game (AuraContainer);
+--     your combo points as five dots under the bar's right end (only while you use energy).
 --   /quietchat bars    turn the bars off (the game's frames come back) or on again
 
 -- The game's frames this replaces. They are protected: an add-on may not change them in combat, so they are
@@ -105,6 +106,41 @@ local function makeDots()
     dots = c
 end
 
+-- Your combo points on the enemy (rogue, druid in cat form: anyone on energy): five dots under the right end of
+-- its bar, lit ones red. The game's own ones sit on the TargetFrame, which is hidden above.
+local COMBO_SIZE, COMBO_GAP, COMBO_MAX = 10, 3, 5
+local combo = {}
+for i = 1, COMBO_MAX do
+    local d = foe:CreateTexture(nil, "OVERLAY")
+    d:SetSize(COMBO_SIZE, COMBO_SIZE)
+    d:SetTexture("Interface\\COMMON\\Indicator-Gray")
+    combo[i] = d
+end
+combo[COMBO_MAX]:SetPoint("TOPRIGHT", foeBar, "BOTTOMRIGHT", 0, -3)
+for i = 1, COMBO_MAX - 1 do combo[i]:SetPoint("RIGHT", combo[i + 1], "LEFT", -COMBO_GAP, 0) end
+local comboText = foe:CreateFontString(nil, "OVERLAY")   -- used only if the game makes the count a secret value
+comboText:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+comboText:SetTextColor(1, 0.2, 0.15)
+comboText:SetPoint("TOPRIGHT", foeBar, "BOTTOMRIGHT", 0, -2)
+
+local function showCombo()
+    local _, token = UnitPowerType("player")
+    local uses = token == "ENERGY"
+    for i = 1, COMBO_MAX do combo[i]:SetShown(uses) end
+    comboText:SetText("")
+    if not uses then return end
+    local n = GetComboPoints("player", "target") or 0
+    local ok = pcall(function()
+        for i = 1, COMBO_MAX do
+            combo[i]:SetTexture(i <= n and "Interface\\COMMON\\Indicator-Red" or "Interface\\COMMON\\Indicator-Gray")
+        end
+    end)
+    if not ok then   -- a secret value may not be compared: show the number instead
+        for i = 1, COMBO_MAX do combo[i]:Hide() end
+        comboText:SetText(n)
+    end
+end
+
 local function layout()
     local w, h = UIParent:GetWidth(), UIParent:GetHeight()
     health:ClearAllPoints()
@@ -188,6 +224,7 @@ local function update()
         else
             foeBar:SetStatusBarColor(0.85, 0.7, 0.1)   -- neutral: yellow, as the game colours it
         end
+        showCombo()
         fade(foe, 1)
     else
         fade(foe, 0)
